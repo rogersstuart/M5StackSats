@@ -39,6 +39,9 @@
     <ClInclude Include="StartupAudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="M5StackSatsON.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ONSplash.c">

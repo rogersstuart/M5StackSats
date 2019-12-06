@@ -1,43 +1,8 @@
-#include "ProgrammingMode.h"
-#include "SerialConfig.h"
-#include "ONSplash.c"
-#include <M5Stack.h> 
-#include <string.h>
-#include <ArduinoJson.h>
-#include <WiFiClientSecure.h>
-#include <math.h>
-#include "AudioGeneratorMP3.h"
-#include "AudioOutputI2S.h"
-#include "AudioFileSourcePROGMEM.h"
-#include "AudioClip.h"
-#include "ASPLogo.h"
-#include <esp_now.h>
-#include "ProgrammingMode.h"
-#include <EEPROM.h>
-#include "Free_Fonts.h" // Include the header file attached to this sketch
-#include "GlobalSettings.h"
-
-#if CONFIG_FREERTOS_UNICORE
-#define ARDUINO_RUNNING_CORE 0
-#else
-#define ARDUINO_RUNNING_CORE 1
-#endif
-
-#define KEYBOARD_I2C_ADDR     0X08
-#define KEYBOARD_INT          5
-
-#define PAYMENT_FAILED 0
-#define PAYMENT_CANCELLED -1
-#define PAYMENT_SUCCESS 1
-
-#define INCLUDE_vTaskDelete 1
+#include "M5StackSatsON.h"
 
 char wifiSSID[60] = "your_ssid_here";
 char wifiPASS[60] = "your_password_here";
 
-//BLITZ DETAILS
-const char*  server = "api.opennode.co";
-const int httpsPort = 443;
 char api_key[60] = "your_api_key_here";
 String description = "testing"; //invoice description
 String hints = "false"; 
@@ -117,7 +82,6 @@ void draw_logo_task(void* pvParameters)
 
 		vTaskDelete(NULL);
 	}
-	
 }
 
 void boot_audio_task(void* pvParameters)
@@ -141,7 +105,6 @@ void boot_audio_task(void* pvParameters)
 
 		delay(1000);
 	}
-
 }
 
 void direct_wifi_programming_mode_task(void* pvParameters)
@@ -163,7 +126,6 @@ void direct_wifi_programming_mode_task(void* pvParameters)
 		else
 			delay(10);
 	}
-	
 }
 
 void wifi_init()
@@ -250,7 +212,6 @@ void draw_boot_progressbar(void* pvParameters)
 		delay(41);
 	}
 }
-
 
 ////////////////////////////////////////  rate_task group /////////////////////////////////////////
 bool rate_chk_status_complete = false;
