@@ -811,7 +811,6 @@ void loop()
 			page_input(true);
 		}
 		
-    
 		temp = usd_to_bill;
 
 		satoshis = temp/conversion;
@@ -1142,144 +1141,114 @@ void post_invoice(int code)
 			}
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 //OPENNODE REQUESTS
-
-
 
 void on_rates()
 {
-	//_lock_acquire(&wifi_lock);
-	
 	WiFiClientSecure client;
   
-  if (!client.connect(server, httpsPort))
-  {
-    return;
-  }
+	if (!client.connect(server, httpsPort))
+		return;
   
-  String url = "/v1/rates";
+	String url = "/v1/rates";
   
-  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + server + "\r\n" +
-               "User-Agent: ESP32\r\n" +
-               "Connection: close\r\n\r\n");
+	client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+				"Host: " + server + "\r\n" +
+				"User-Agent: ESP32\r\n" +
+				"Connection: close\r\n\r\n");
                
-  while (client.connected())
-  {
-    String line = client.readStringUntil('\n');
+	while (client.connected())
+	{
+		String line = client.readStringUntil('\n');
     
-    if (line == "\r")
-    {
+		if (line == "\r")
+			break;
+	}
+  
+	String line = client.readStringUntil('\n');
+  
+	const size_t capacity = 169*JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(168) + 3800;
+	DynamicJsonDocument doc(capacity);
 
-      break;
-    }
-    
-  }
-  
-  String line = client.readStringUntil('\n');
-  
-    const size_t capacity = 169*JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(168) + 3800;
-    DynamicJsonDocument doc(capacity);
-    deserializeJson(doc, line);
-    conversion = doc["data"][on_currency][on_currency.substring(3)]; 
+	deserializeJson(doc, line);
+
+	conversion = doc["data"][on_currency][on_currency.substring(3)]; 
 
 	rates_init = true;
 }
 
-
-
 void reqinvoice(String value)
 {
-	//_lock_acquire(&wifi_lock);
+	WiFiClientSecure client;
 
-  WiFiClientSecure client;
+	if (!client.connect(server, httpsPort)) 
+		ESP.restart();
 
-  if (!client.connect(server, httpsPort)) {
+	String topost = "{  \"amount\": \""+ value +"\", \"description\": \""+ description  +"\", \"route_hints\": \""+ hints  +"\"}";
+	String url = "/v1/charges";
 
-    //return;
+	client.print(String("POST ") + url + " HTTP/1.1\r\n" +
+					"Host: " + server + "\r\n" +
+					"User-Agent: ESP32\r\n" +
+					"Authorization: " + api_key + "\r\n" +
+					"Content-Type: application/json\r\n" +
+					"Connection: close\r\n" +
+					"Content-Length: " + topost.length() + "\r\n" +
+					"\r\n" + 
+					topost + "\n");
 
-	  ESP.restart();
-  }
+	while (client.connected())
+	{
+		String line = client.readStringUntil('\n');
+		if (line == "\r")
+			break;
+	}
 
-  String topost = "{  \"amount\": \""+ value +"\", \"description\": \""+ description  +"\", \"route_hints\": \""+ hints  +"\"}";
-  String url = "/v1/charges";
+	String line = client.readStringUntil('\n');
 
-   client.print(String("POST ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + server + "\r\n" +
-                 "User-Agent: ESP32\r\n" +
-                 "Authorization: " + apikey + "\r\n" +
-                 "Content-Type: application/json\r\n" +
-                 "Connection: close\r\n" +
-                 "Content-Length: " + topost.length() + "\r\n" +
-                 "\r\n" + 
-                 topost + "\n");
+	const size_t capacity = 169*JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(168) + 3800;
+	DynamicJsonDocument doc(capacity);
 
-  while (client.connected()) {
-    String line = client.readStringUntil('\n');
-    if (line == "\r") {
+	deserializeJson(doc, line);
 
-      break;
-    }
-  }
-  String line = client.readStringUntil('\n');
-
-  
-    const size_t capacity = 169*JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(168) + 3800;
-    DynamicJsonDocument doc(capacity);
-
-    deserializeJson(doc, line);
-
-    String data_idd = doc["data"]["id"]; 
-    data_id = data_idd;
-    String data_lightning_invoice_payreqq = doc["data"]["lightning_invoice"]["payreq"];
-    payreq = data_lightning_invoice_payreqq;
- 
-	//_lock_release(&wifi_lock);
+	String data_idd = doc["data"]["id"]; 
+	data_id = data_idd;
+	String data_lightning_invoice_payreqq = doc["data"]["lightning_invoice"]["payreq"];
+	payreq = data_lightning_invoice_payreqq;
 }
 
 
 void checkpayment(String PAYID)
 {
-	//_lock_acquire(&wifi_lock);
+	WiFiClientSecure client;
 
-WiFiClientSecure client;
+	if (!client.connect(server, httpsPort))
+		ESP.restart();
 
-  if (!client.connect(server, httpsPort)) {
+	String url = "/v1/charge/" + PAYID;
 
-	  ESP.restart();
+	client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+				"Host: " + server + "\r\n" +
+				"Authorization: " + api_key + "\r\n" +
+				"User-Agent: ESP32\r\n" +
+				"Connection: close\r\n\r\n");
 
-	  //return;
-  }
+	while (client.connected())
+	{
+		String line = client.readStringUntil('\n');
+		if (line == "\r")
+			break;
+	}
 
-  String url = "/v1/charge/" + PAYID;
+	String line = client.readStringUntil('\n');
 
+	const size_t capacity = JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(14) + 650;
+	DynamicJsonDocument doc(capacity);
 
-  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + server + "\r\n" +
-               "Authorization: " + apikey + "\r\n" +
-               "User-Agent: ESP32\r\n" +
-               "Connection: close\r\n\r\n");
+	deserializeJson(doc, line);
 
-
-  while (client.connected()) {
-
-    
-    String line = client.readStringUntil('\n');
-    if (line == "\r") {
-      break;
-    }
-  }
-  String line = client.readStringUntil('\n');
-
-
-  
-const size_t capacity = JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(14) + 650;
- DynamicJsonDocument doc(capacity);
-
-    deserializeJson(doc, line);
-
-String data_statuss = doc["data"]["status"]; 
-data_status = data_statuss;
-
-//_lock_release(&wifi_lock);
+	String data_statuss = doc["data"]["status"]; 
+	data_status = data_statuss;
 }
