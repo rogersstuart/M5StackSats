@@ -7,16 +7,8 @@ char api_key[60] = "your_api_key_here";
 String description = "testing"; //invoice description
 String hints = "false"; 
 
-String choice = "";
-
 String on_currency = "BTCUSD";  //currency can be changed here ie BTCEUR BTCGBP etc
-String on_sub_currency = on_currency.substring(3);
 
-String key_val;
-String cntr = "0";
-String inputs = "1";
-int keysdec;
-int keyssdec;
 float temp;  
 float satoshis;
 String nosats = "";
@@ -33,13 +25,11 @@ float usd_to_bill = 100.00;
 ulong ms_output_duration = 1000;
 
 //audio
-
 AudioFileSourcePROGMEM* in;
 AudioGeneratorMP3* mp3;
 AudioOutputI2S* out;
 
 //wifi
-
 WiFiUDP udp;
 WiFiClient client;
 IPAddress broadcast(255, 255, 255, 255);
@@ -59,11 +49,10 @@ volatile float progress_bar_percentage = 0;
 StaticJsonDocument<200> wifi_credentials;
 char buffer[200];
 
-//locks
-
-_lock_t lcd_lock, wifi_lock, activ_lock;
-
 char peer_address[6];
+
+//locks
+_lock_t lcd_lock, wifi_lock, activ_lock;
 
 bool rates_init = false;
 
