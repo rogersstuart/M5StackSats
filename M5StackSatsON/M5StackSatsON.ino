@@ -144,17 +144,11 @@ void wifi_init()
 
 		progress_bar_percentage = 0.25;
 
-		int preferred_nets_rssi_0 = 0;
-		bool preffered_net_is_present_0 = false;
-		int preferred_nets_rssi_1 = 0;
-		bool preffered_net_is_present_1 = false;
-
 		WiFi.begin(wifiSSID, wifiPASS);
-
 		WiFi.setAutoReconnect(true);
 
 		//connect to local wifi            
-		//
+		
 		float inc = 0.5 / 4000;
 		for (int k = 0; k < 4000; k++)
 		{
