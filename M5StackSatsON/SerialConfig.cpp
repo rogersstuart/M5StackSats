@@ -13,6 +13,8 @@ void parse_cmd()
 				else
 					return;
 
+			Serial.write(ACK);
+
 			//command and key have been entered
 
 			cmd = Serial.read();
