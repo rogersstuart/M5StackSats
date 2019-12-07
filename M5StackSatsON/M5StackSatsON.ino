@@ -359,6 +359,8 @@ void setup()
 		StaticJsonDocument<200> wifi_credentials;
 
 		char buffer[200];
+		memset(buffer, 0, 200);
+
 		EEPROM.get(2, buffer);
 
 		deserializeJson(wifi_credentials, buffer);
@@ -366,11 +368,16 @@ void setup()
 		const char* p1 = wifi_credentials["ssid"];
 		const char* p2 = wifi_credentials["password"];
 
-		memcpy(wifiSSID, p1, strlen(p1));
-		memcpy(wifiPASS, p2, strlen(p2));
+		//memcpy(wifiSSID, p1, 60);
+		//memcpy(wifiPASS, p2, 60);
 
+		strcpy(wifiSSID, p1);
+		strcpy(wifiPASS, p2);
+
+		////////////////////////////////////////
 
 		StaticJsonDocument<200> other_settings;
+
 		char buffer2[200];
 		memset(buffer2, 0, 200);
 
@@ -380,12 +387,13 @@ void setup()
 
 		const char* p3 = other_settings["api_key"];
 
-		memcpy(api_key, p1, strlen(p3));
+		strcpy(api_key, p3);
 
 		usd_to_bill = other_settings["to_bill"];
 		ms_output_duration = other_settings["active_duration"];
 
-		Serial.println(ms_output_duration);
+		//Serial.println(ms_output_duration);
+		
 	}
 	
 

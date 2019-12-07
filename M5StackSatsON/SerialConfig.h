@@ -14,6 +14,7 @@
 
 #include <EEPROM.h>
 #include "GlobalSettings.h"
+#include <M5Stack.h> 
 
 #define ACK 'z'
 #define NACK 'q'
