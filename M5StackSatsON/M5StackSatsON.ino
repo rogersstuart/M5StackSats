@@ -46,9 +46,6 @@ bool wifi_init_complete = false;
 TaskHandle_t progress_bar_handle;
 volatile float progress_bar_percentage = 0;
 
-StaticJsonDocument<200> wifi_credentials;
-char buffer[200];
-
 char peer_address[6];
 
 //locks
@@ -96,6 +93,7 @@ void boot_audio_task(void* pvParameters)
 	}
 }
 
+/*
 void direct_wifi_programming_mode_task(void* pvParameters)
 {
 	while (true)
@@ -104,17 +102,51 @@ void direct_wifi_programming_mode_task(void* pvParameters)
 		{
 			//connect to remote device
 
-			EEPROM.write(0, 0xbf);
+			//EEPROM.begin(1024);
+			EEPROM.writeByte(0, 0xbf);
 			EEPROM.commit();
+			//EEPROM.end();
 
 			delay(100);
 
-			ESP.restart();
+			//ESP.restart();
+
+			_lock_acquire(&lcd_lock);
+			M5.Lcd.println(EEPROM.read(0), HEX);
+			_lock_release(&lcd_lock);
 
 		}
 		else
 			delay(10);
 	}
+}
+*/
+
+void draw_boot_progressbar(void* pvParameters)
+{
+  float integ = 0;
+
+  _lock_acquire(&lcd_lock);
+
+  M5.Lcd.fillRect(10, 230, 300, 10, BLUE);
+
+  _lock_release(&lcd_lock);
+  
+  while (true)
+  {
+    integ = (integ + progress_bar_percentage) * 0.5;
+    
+    int r = round(300 * integ);
+
+    _lock_acquire(&lcd_lock);
+
+    M5.Lcd.fillRect(10, 230, r, 10, progress_bar_percentage > integ ? GREEN : RED);
+    M5.Lcd.fillRect(10+r, 230, 300-r, 10, BLUE);
+
+    _lock_release(&lcd_lock);
+
+    delay(41);
+  }
 }
 
 void wifi_init()
@@ -169,32 +201,7 @@ void wifi_init()
 }
 
 
-void draw_boot_progressbar(void* pvParameters)
-{
-	float integ = 0;
 
-	_lock_acquire(&lcd_lock);
-
-	M5.Lcd.fillRect(10, 230, 300, 10, BLUE);
-
-	_lock_release(&lcd_lock);
-	
-	while (true)
-	{
-		integ = (integ + progress_bar_percentage) * 0.5;
-		
-		int r = round(300 * integ);
-
-		_lock_acquire(&lcd_lock);
-
-		M5.Lcd.fillRect(10, 230, r, 10, progress_bar_percentage > integ ? GREEN : RED);
-		M5.Lcd.fillRect(10+r, 230, 300-r, 10, BLUE);
-
-		_lock_release(&lcd_lock);
-
-		delay(41);
-	}
-}
 
 ////////////////////////////////////////  rate_task group /////////////////////////////////////////
 bool rate_chk_status_complete = false;
@@ -304,7 +311,7 @@ void setup()
 	Serial.begin(115200);
 	M5.begin();
 	
-	EEPROM.begin(1024);
+	EEPROM.begin(512);
 
 	delay(1000);
 
@@ -352,60 +359,38 @@ void setup()
 	EEPROM.get(EEPROM_PEER_ADDRESS, peer_address);
 
 	
-	
-	//check to see if wifi credentials have been saved to eeprom
-	if (EEPROM.read(1) == 0xaf)
-	{
-		StaticJsonDocument<200> wifi_credentials;
-
-		char buffer[200];
-		memset(buffer, 0, 200);
-
-		EEPROM.get(2, buffer);
-
-		deserializeJson(wifi_credentials, buffer);
-
-		const char* p1 = wifi_credentials["ssid"];
-		const char* p2 = wifi_credentials["password"];
-
-		//memcpy(wifiSSID, p1, 60);
-		//memcpy(wifiPASS, p2, 60);
-
-		strcpy(wifiSSID, p1);
-		strcpy(wifiPASS, p2);
-
-		////////////////////////////////////////
-
-		StaticJsonDocument<200> other_settings;
-
-		char buffer2[200];
-		memset(buffer2, 0, 200);
-
-		EEPROM.get(EEPROM_ADDITIONAL_PARAMS, buffer2);
-
-		deserializeJson(other_settings, buffer2);
-
-		const char* p3 = other_settings["api_key"];
-
-		strcpy(api_key, p3);
-
-		usd_to_bill = other_settings["to_bill"];
-		ms_output_duration = other_settings["active_duration"];
-
-		//Serial.println(ms_output_duration);
+	/*
+	while (true)
+		Serial.println(EEPROM.read(0), HEX);
+		*/
 		
-	}
-	
 
 	//esp now entry key is stored at address 0
-	if (EEPROM.read(0) == 0xbf)
+	M5.update();
+	//if (EEPROM.read(0) == 0xbf)
+	if(M5.BtnA.isPressed())
 	{
-		EEPROM.write(0, 0x00);
-		EEPROM.commit();
+		ulong tmr = millis();
+		while (true)
+		{
+			M5.update();
+
+			if (M5.BtnA.pressedFor(10000))
+				break;
+			else
+				if ((ulong)((long)millis() - tmr) >= 30000)
+					ESP.restart();
+				else
+					delay(100);
+		}
+		
+		//EEPROM.write(0, 0x00);
+		//EEPROM.commit();
 
 		//credential programming mode
 
 		//make sure that the user intended to do this
+		/*
 		M5.update();
 		if (M5.BtnA.isPressed())
 		{
@@ -416,20 +401,22 @@ void setup()
 				ESP.restart();
 		}
 		//////////////////////////////////////////////
+		*/
 
-		wifi_credentials["ssid"] = wifiSSID;
-		wifi_credentials["password"] = wifiPASS;
+		
+		char buffer[200];
+		memset(buffer, 0, 200);
 
-		serializeJson(wifi_credentials, buffer, 200);
+		EEPROM.get(2, buffer);
 
 		prog_setup();
 
-		ulong tmr = millis();
+		//ulong tmr = millis();
 		while (true)
 		{
 			M5.update();
 
-			prog_loop((uint8_t*)buffer, sizeof(buffer));
+			prog_loop((uint8_t*)buffer, 200);
 
 			//if this has been going on for more than 30 seconds then reboot
 			if ((ulong)((long)millis() - tmr) >= 30000)
@@ -439,12 +426,49 @@ void setup()
 		}
 	}
 	//
+
+	//check to see if wifi credentials have been saved to eeprom
+	if (EEPROM.read(1) == 0xaf)
+	{
+		StaticJsonDocument<200> json;
+
+		char buffer[200];
+		memset(buffer, 0, 200);
+
+		EEPROM.get(2, buffer);
+
+		deserializeJson(json, buffer);
+
+		const char* p1 = json["ssid"];
+		const char* p2 = json["password"];
+
+		//memcpy(wifiSSID, p1, 60);
+		//memcpy(wifiPASS, p2, 60);
+
+		strcpy(wifiSSID, p1);
+		strcpy(wifiPASS, p2);
+
+		////////////////////////////////////////
+
+		memset(buffer, 0, 200);
+		json.clear();
+
+		EEPROM.get(EEPROM_ADDITIONAL_PARAMS, buffer);
+
+		deserializeJson(json, buffer);
+
+		const char* p3 = json["api_key"];
+
+		strcpy(api_key, p3);
+
+		usd_to_bill = json["to_bill"];
+		ms_output_duration = json["active_duration"];
+	}
+
 		
 	
 	xTaskCreate(serial_command_manager, "serial_commands", 8192, NULL, 10, NULL);
 
-	//Wire.begin();
-	pinMode(KEYBOARD_INT, INPUT_PULLUP);
 
 	xTaskCreate(draw_logo_task, "draw_logo", 8192, NULL, 1, NULL);
 	//xTaskCreate(boot_audio_task, "boot_audio", 8192, NULL, 1, NULL);
@@ -467,8 +491,8 @@ void setup()
 	delay(1);
 	xTaskCreate(udp_management_task, "udp_manager", 4096, NULL, 1, NULL);
 	delay(1);
-	xTaskCreate(direct_wifi_programming_mode_task, "direct_wifi", 1024, NULL, 2, NULL);
-	delay(1);
+	//xTaskCreate(direct_wifi_programming_mode_task, "direct_wifi", 1024, NULL, 2, NULL);
+	//delay(1);
 }
 
 void page_input(bool en)
